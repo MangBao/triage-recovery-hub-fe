@@ -22,7 +22,10 @@ const api: AxiosInstance = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API Error:", error.response?.data || error.message);
+    // Suppress 404 errors as they are handled by the UI
+    if (error.response?.status !== 404) {
+      console.error("API Error:", error.response?.data || error.message);
+    }
     return Promise.reject(error);
   },
 );

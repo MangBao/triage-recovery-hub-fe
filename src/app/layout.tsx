@@ -64,9 +64,8 @@ export default function RootLayout({
         <footer className="border-t border-white/5 mt-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <p className="text-center text-sm text-slate-500">
-              💡 Powered by{" "}
-              <span className="text-primary-400">Google Gemini AI</span> • Built
-              for Full Stack Assessment
+              💡 Powered by <span className="text-primary-400">Mang Bao</span> •
+              Built for Full Stack Assessment
             </p>
           </div>
         </footer>

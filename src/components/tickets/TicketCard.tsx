@@ -18,7 +18,11 @@ export default function TicketCard({ ticket }: TicketCardProps) {
     : "";
 
   return (
-    <Link href={`/dashboard/${ticket.id}`} className="block h-full">
+    <Link
+      href={`/dashboard/${ticket.id}`}
+      className="block h-full"
+      prefetch={false}
+    >
       <div
         className={`glass-card cursor-pointer h-full flex flex-col ${borderClass}`}
       >
@@ -59,11 +63,14 @@ export default function TicketCard({ ticket }: TicketCardProps) {
         </div>
 
         {/* Processing Indicator */}
-        {ticket.status === "processing" && (
+        {/* Processing Indicator */}
+        {(ticket.status === "processing" || ticket.status === "pending") && (
           <div className="mt-4 pt-4 border-t border-white/5">
             <div className="flex items-center gap-2 text-sm text-blue-400">
               <div className="w-4 h-4 rounded-full border-2 border-blue-400/30 border-t-blue-400 animate-spin" />
-              AI is analyzing...
+              {ticket.status === "pending"
+                ? "Queueing analysis..."
+                : "AI is analyzing..."}
             </div>
           </div>
         )}
