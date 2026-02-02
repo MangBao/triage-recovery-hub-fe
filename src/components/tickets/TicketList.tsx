@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTickets } from "@/hooks/useTickets";
+import { useTicketWebSocket } from "@/hooks/useTicketWebSocket";
 import TicketCard from "./TicketCard";
 import { LoadingGrid } from "@/components/ui/LoadingSpinner";
 import {
@@ -13,59 +14,40 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { TicketStatus, UrgencyLevel, TicketCategory } from "@/types/ticket";
 
-export default function TicketList() {
-  const [status, setStatus] = useState<TicketStatus | undefined>();
-  const [urgency, setUrgency] = useState<UrgencyLevel | undefined>();
-  const [category, setCategory] = useState<TicketCategory | undefined>();
-  const [page, setPage] = useState(1);
-  const perPage = 9;
+import { useTicketFilters } from "@/hooks/useTicketFilters";
 
-  const filters = useMemo(
-    () => ({
-      status,
-      urgency,
-      category,
-      page,
-      per_page: perPage,
-    }),
-    [status, urgency, category, page, perPage],
-  );
+export default function TicketList() {
+  const perPage = 9;
+  const { state, filters, hasFilters, handlers } = useTicketFilters(perPage);
+  const { status, urgency, category, page } = state;
 
   const { tickets, pagination, isLoading, error, mutate } = useTickets(filters);
 
-  const handleRefresh = () => mutate();
+  // WebSocket Integration for List
+  const ticketIds = useMemo(() => tickets.map((t) => t.id), [tickets]);
+  const { lastUpdate } = useTicketWebSocket(ticketIds);
 
-  const handleStatusChange = (value: string) => {
-    setStatus(value ? (value as TicketStatus) : undefined);
-    setPage(1);
-  };
+  // Refresh list when any visible ticket updates
+  useEffect(() => {
+    if (lastUpdate) {
+      // UX: Show toast for completed background tasks
+      if (lastUpdate.status === "completed") {
+        toast.info(`Ticket #${lastUpdate.id} analyzed successfully`, {
+          description: `Category: ${lastUpdate.category} • Urgency: ${lastUpdate.urgency}`,
+          icon: "🤖",
+        });
+      } else if (lastUpdate.status === "failed") {
+        toast.error(`Ticket #${lastUpdate.id} processing failed`);
+      }
 
-  const handleUrgencyChange = (value: string) => {
-    setUrgency(value ? (value as UrgencyLevel) : undefined);
-    setPage(1);
-  };
-
-  const handleCategoryChange = (value: string) => {
-    setCategory(value ? (value as TicketCategory) : undefined);
-    setPage(1);
-  };
-
-  const goToPage = (newPage: number) => {
-    if (newPage >= 1 && newPage <= pagination.total_pages) {
-      setPage(newPage);
+      mutate(); // Revalidate list data
     }
-  };
+  }, [lastUpdate, mutate]);
 
-  const clearFilters = () => {
-    setStatus(undefined);
-    setUrgency(undefined);
-    setCategory(undefined);
-    setPage(1);
-  };
-
-  const hasFilters = status || urgency || category;
+  const handleRefresh = () => mutate();
 
   if (error) {
     return (
@@ -108,7 +90,7 @@ export default function TicketList() {
             <div className="relative group">
               <select
                 value={status || ""}
-                onChange={(e) => handleStatusChange(e.target.value)}
+                onChange={(e) => handlers.setStatus(e.target.value)}
                 className="appearance-none bg-slate-800/60 hover:bg-slate-700/60 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm py-2.5 pl-4 pr-10 text-white cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
               >
                 <option value="">📋 All Status</option>
@@ -124,7 +106,7 @@ export default function TicketList() {
             <div className="relative group">
               <select
                 value={urgency || ""}
-                onChange={(e) => handleUrgencyChange(e.target.value)}
+                onChange={(e) => handlers.setUrgency(e.target.value)}
                 className="appearance-none bg-slate-800/60 hover:bg-slate-700/60 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm py-2.5 pl-4 pr-10 text-white cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
               >
                 <option value="">🎯 All Urgency</option>
@@ -139,7 +121,7 @@ export default function TicketList() {
             <div className="relative group">
               <select
                 value={category || ""}
-                onChange={(e) => handleCategoryChange(e.target.value)}
+                onChange={(e) => handlers.setCategory(e.target.value)}
                 className="appearance-none bg-slate-800/60 hover:bg-slate-700/60 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm py-2.5 pl-4 pr-10 text-white cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
               >
                 <option value="">📁 All Categories</option>
@@ -153,7 +135,7 @@ export default function TicketList() {
             {/* Clear Filters */}
             {hasFilters && (
               <button
-                onClick={clearFilters}
+                onClick={handlers.clearFilters}
                 className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-red-400 transition-colors px-3 py-2 rounded-lg hover:bg-red-500/10"
               >
                 <X className="w-3.5 h-3.5" />
@@ -201,7 +183,10 @@ export default function TicketList() {
               : "Create your first ticket to get started"}
           </p>
           {hasFilters && (
-            <button onClick={clearFilters} className="btn-secondary text-sm">
+            <button
+              onClick={handlers.clearFilters}
+              className="btn-secondary text-sm"
+            >
               Clear Filters
             </button>
           )}
@@ -221,7 +206,7 @@ export default function TicketList() {
           {pagination.total_pages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-8">
               <button
-                onClick={() => goToPage(page - 1)}
+                onClick={() => handlers.goToPage(page - 1)}
                 disabled={page === 1}
                 className="btn-secondary py-2 px-3 disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -242,7 +227,7 @@ export default function TicketList() {
                         <span className="px-2 text-slate-500">...</span>
                       )}
                       <button
-                        onClick={() => goToPage(p)}
+                        onClick={() => handlers.goToPage(p)}
                         className={`min-w-[40px] py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                           p === page
                             ? "bg-primary-600 text-white shadow-glow"
@@ -256,7 +241,7 @@ export default function TicketList() {
               </div>
 
               <button
-                onClick={() => goToPage(page + 1)}
+                onClick={() => handlers.goToPage(page + 1)}
                 disabled={!pagination.has_more}
                 className="btn-secondary py-2 px-3 disabled:opacity-40 disabled:cursor-not-allowed"
               >

@@ -52,3 +52,7 @@ export interface CreateTicketRequest {
 export interface UpdateTicketRequest {
   agent_edited_response?: string;
 }
+
+export interface TicketUpdate extends Ticket {
+  // WebSocket event data structure matches Ticket
+}
