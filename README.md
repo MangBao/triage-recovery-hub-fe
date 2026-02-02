@@ -61,8 +61,8 @@ graph TD
 - **Event-Driven Architecture**: Replaced polling with **WebSockets** for true real-time updates and reduced server load.
 - **Hybrid Data Fetching**:
   - `useTicket`: Fetches initial state ONCE via REST API.
-  - `useTicketWebSocket`: Maintains persistent connection for live updates.
-- **SWR for State Management**: Used as a client-side cache that is mutatable by WebSocket events, ensuring UI consistency.
+  - `useTicketWebSocket`: Maintains persistent connection for live updates with **Auto-Reconnect** (Exponential Backoff) strategy.
+- **SWR for State Management**: Used as a client-side cache that is mutable by WebSocket events, ensuring UI consistency.
 - **Toast Notifications**: Used `sonner` for non-blocking, elegant feedback when long-running AI tasks complete.
 - **Clean Code**: Strict separation of UI (`components`) and Logic (`hooks`), with all magic numbers and logs removed.
 

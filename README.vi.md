@@ -61,7 +61,7 @@ graph TD
 - **Kiến Trúc Hướng Sự Kiện**: Thay thế polling bằng **WebSockets** để cập nhật thời gian thực thực sự và giảm tải máy chủ.
 - **Lấy Dữ Liệu Lai (Hybrid)**:
   - `useTicket`: Lấy dữ liệu ban đầu MỘT LẦN qua REST API.
-  - `useTicketWebSocket`: Duy trì kết nối liên tục để cập nhật trực tiếp.
+  - `useTicketWebSocket`: Duy trì kết nối liên tục với cơ chế **Tự Động Kết Nối Lại** (Exponential Backoff).
 - **SWR để Quản Lý Trạng Thái**: Được sử dụng như bộ nhớ đệm phía khách hàng có thể thay đổi bởi sự kiện WebSocket, đảm bảo tính nhất quán UI.
 - **Thông Báo Toast**: Sử dụng `sonner` để phản hồi tinh tế, không chặn khi các tác vụ AI chạy nền hoàn tất.
 - **Clean Code**: Phân tách nghiêm ngặt UI (`components`) và Logic (`hooks`), loại bỏ mọi "magic numbers" và logs dư thừa.

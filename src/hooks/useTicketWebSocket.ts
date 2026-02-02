@@ -30,60 +30,92 @@ export function useTicketWebSocket(ticketIds: number[]) {
     }
   }, [JSON.stringify(ticketIds.sort())]);
 
+  // Reconnection state
+  const reconnectAttempt = useRef(0);
+  const maxReconnectDelay = 30000; // Cap at 30 seconds
+  const baseDelay = 1000;
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    // Create WebSocket connection ONCE on mount
-    const socket = new WebSocket(WS_URL);
-    ws.current = socket;
-
-    socket.onopen = () => {
-      setIsConnected(true);
-
-      // Subscribe to whatever is current in the ref
-      const currentIds = ticketIdsRef.current;
-      if (currentIds.length > 0) {
-        socket.send(
-          JSON.stringify({
-            action: "subscribe",
-            ticket_ids: currentIds,
-          }),
-        );
-      }
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-
-        if (message.type === "ticket_updated") {
-          const data = message.data as TicketUpdate;
-          setLastUpdate(data);
-        } else if (message.type === "pong") {
-          // Keep-alive response
-        }
-      } catch (e) {
-        console.error("❌ [WS] Parse error:", e);
-      }
-    };
-
-    socket.onclose = (event) => {
-      setIsConnected(false);
-    };
-
-    socket.onerror = (error) => {
-      // Use warn to avoid overlay in Next.js
-      console.warn("⚠️ [WS] Connection error (retrying...):", error);
-    };
-
-    // Cleanup on unmount only
-    return () => {
+    const connect = () => {
+      // Prevent multiple connections
       if (
-        socket.readyState === WebSocket.OPEN ||
-        socket.readyState === WebSocket.CONNECTING
+        ws.current?.readyState === WebSocket.OPEN ||
+        ws.current?.readyState === WebSocket.CONNECTING
       ) {
-        socket.close();
+        return;
       }
+
+      const socket = new WebSocket(WS_URL);
+      ws.current = socket;
+
+      socket.onopen = () => {
+        console.log("✅ [WS] Connected");
+        setIsConnected(true);
+        reconnectAttempt.current = 0; // Reset backoff
+
+        // Resubscribe whenever we reconnect
+        const currentIds = ticketIdsRef.current;
+        if (currentIds.length > 0) {
+          socket.send(
+            JSON.stringify({
+              action: "subscribe",
+              ticket_ids: currentIds,
+            }),
+          );
+        }
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "ticket_updated") {
+            setLastUpdate(message.data as TicketUpdate);
+          }
+        } catch (e) {
+          console.error("❌ [WS] Parse error:", e);
+        }
+      };
+
+      socket.onclose = () => {
+        setIsConnected(false);
+        scheduleReconnect();
+      };
+
+      socket.onerror = (err) => {
+        console.warn("⚠️ [WS] Error:", err);
+        socket.close(); // Ensure close triggers reconnect
+      };
     };
-  }, []); // Empty dependency array = Run once
+
+    const scheduleReconnect = () => {
+      const delay = Math.min(
+        baseDelay * Math.pow(2, reconnectAttempt.current),
+        maxReconnectDelay,
+      );
+
+      console.log(
+        `⏳ [WS] Reconnecting in ${delay}ms... (Attempt ${reconnectAttempt.current + 1})`,
+      );
+
+      if (reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = setTimeout(() => {
+        reconnectAttempt.current += 1;
+        connect();
+      }, delay);
+    };
+
+    // Initial connection
+    connect();
+
+    // Cleanup
+    return () => {
+      if (reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
+      if (ws.current) ws.current.close();
+    };
+  }, []); // Run once on mount, internal logic handles reconnections
 
   return { isConnected, lastUpdate };
 }

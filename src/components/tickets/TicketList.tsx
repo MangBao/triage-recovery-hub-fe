@@ -19,6 +19,9 @@ import { TicketStatus, UrgencyLevel, TicketCategory } from "@/types/ticket";
 
 import { useTicketFilters } from "@/hooks/useTicketFilters";
 
+const FILTER_SELECT_CLASS =
+  "appearance-none bg-slate-800/60 hover:bg-slate-700/60 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm py-2.5 pl-4 pr-10 text-white cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500";
+
 export default function TicketList() {
   const perPage = 9;
   const { state, filters, hasFilters, handlers } = useTicketFilters(perPage);
@@ -48,6 +51,18 @@ export default function TicketList() {
   }, [lastUpdate, mutate]);
 
   const handleRefresh = () => mutate();
+
+  // Memoize pagination logic
+  const visiblePages = useMemo(() => {
+    if (pagination.total_pages <= 1) return [];
+
+    return Array.from(
+      { length: pagination.total_pages },
+      (_, i) => i + 1,
+    ).filter(
+      (p) => p === 1 || p === pagination.total_pages || Math.abs(p - page) <= 1,
+    );
+  }, [pagination.total_pages, page]);
 
   if (error) {
     return (
@@ -91,7 +106,7 @@ export default function TicketList() {
               <select
                 value={status || ""}
                 onChange={(e) => handlers.setStatus(e.target.value)}
-                className="appearance-none bg-slate-800/60 hover:bg-slate-700/60 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm py-2.5 pl-4 pr-10 text-white cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
+                className={FILTER_SELECT_CLASS}
               >
                 <option value="">📋 All Status</option>
                 <option value="pending">⏳ Pending</option>
@@ -107,7 +122,7 @@ export default function TicketList() {
               <select
                 value={urgency || ""}
                 onChange={(e) => handlers.setUrgency(e.target.value)}
-                className="appearance-none bg-slate-800/60 hover:bg-slate-700/60 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm py-2.5 pl-4 pr-10 text-white cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
+                className={FILTER_SELECT_CLASS}
               >
                 <option value="">🎯 All Urgency</option>
                 <option value="High">🔴 High</option>
@@ -122,7 +137,7 @@ export default function TicketList() {
               <select
                 value={category || ""}
                 onChange={(e) => handlers.setCategory(e.target.value)}
-                className="appearance-none bg-slate-800/60 hover:bg-slate-700/60 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm py-2.5 pl-4 pr-10 text-white cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
+                className={FILTER_SELECT_CLASS}
               >
                 <option value="">📁 All Categories</option>
                 <option value="Billing">💳 Billing</option>
@@ -214,30 +229,23 @@ export default function TicketList() {
               </button>
 
               <div className="flex items-center gap-1">
-                {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
-                  .filter(
-                    (p) =>
-                      p === 1 ||
-                      p === pagination.total_pages ||
-                      Math.abs(p - page) <= 1,
-                  )
-                  .map((p, index, arr) => (
-                    <span key={p} className="flex items-center">
-                      {index > 0 && arr[index - 1] !== p - 1 && (
-                        <span className="px-2 text-slate-500">...</span>
-                      )}
-                      <button
-                        onClick={() => handlers.goToPage(p)}
-                        className={`min-w-[40px] py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                          p === page
-                            ? "bg-primary-600 text-white shadow-glow"
-                            : "btn-secondary"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    </span>
-                  ))}
+                {visiblePages.map((p, index, arr) => (
+                  <span key={p} className="flex items-center">
+                    {index > 0 && arr[index - 1] !== p - 1 && (
+                      <span className="px-2 text-slate-500">...</span>
+                    )}
+                    <button
+                      onClick={() => handlers.goToPage(p)}
+                      className={`min-w-[40px] py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                        p === page
+                          ? "bg-primary-600 text-white shadow-glow"
+                          : "btn-secondary"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  </span>
+                ))}
               </div>
 
               <button

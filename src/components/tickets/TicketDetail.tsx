@@ -52,13 +52,17 @@ export default function TicketDetail({ ticketId }: Props) {
     ticket?.status === "pending" || ticket?.status === "processing";
 
   // Initialize edited response
+  const agentEditedResponse = ticket?.agent_edited_response;
+  const aiDraftResponse = ticket?.ai_draft_response;
+
   useEffect(() => {
-    if (ticket?.agent_edited_response) {
-      setEditedResponse(ticket.agent_edited_response);
-    } else if (ticket?.ai_draft_response) {
-      setEditedResponse(ticket.ai_draft_response);
+    // Prioritize existing agent edit, then AI draft, then empty
+    const initialContent = agentEditedResponse || aiDraftResponse || "";
+    // Only update if we have content to show, or creating a fresh state
+    if (initialContent) {
+      setEditedResponse(initialContent);
     }
-  }, [ticket]);
+  }, [agentEditedResponse, aiDraftResponse]);
 
   // Save edited response
   const handleSave = async () => {
@@ -172,7 +176,8 @@ export default function TicketDetail({ ticketId }: Props) {
               </h4>
               <p className="text-lg font-semibold text-white flex items-center gap-2">
                 <span className="text-2xl">
-                  {CATEGORY_ICONS[ticket.category]}
+                  {/* Safe access with fallback */}
+                  {CATEGORY_ICONS[ticket.category] || "📁"}
                 </span>
                 {ticket.category}
               </p>
