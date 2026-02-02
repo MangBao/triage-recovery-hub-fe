@@ -4,7 +4,7 @@
 
 [![Đọc bằng tiếng Việt](https://img.shields.io/badge/Lang-Tiếng%20Việt-red?style=for-the-badge&logo=google-translate&logoColor=white)](./README.vi.md)
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.1-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
@@ -25,17 +25,17 @@ _Real-time Monitoring - Instant Responses - Modern UX_
 
 ## 🌟 Introduction
 
-**Triage & Recovery Hub Frontend** is a modern, premium dashboard designed for support agents. Built with **Next.js 15** and **React 19**, it features a stunning glassmorphism UI/UX that allows agents to monitor tickets in real-time, review AI-generated drafts, and manage customer support workflows efficiently.
+**Triage & Recovery Hub Frontend** is a modern, premium dashboard designed for support agents. Built with **Next.js 16** and **React 19**, it features a stunning glassmorphism UI/UX that allows agents to monitor tickets in real-time, review AI-generated drafts, and manage customer support workflows efficiently.
 
 ### ✨ Key Features
 
-| Feature                   | Description                                               | Tech                      |
-| :------------------------ | :-------------------------------------------------------- | :------------------------ |
-| 🎨 **Premium UI/UX**      | Dark theme, glassmorphism, micro-animations, & responsive | `Tailwind CSS`            |
-| ⚡ **Real-time Updates**  | Auto-polling ticket status & AI analysis progress         | `SWR` + `Polling Hooks`   |
-| 🧠 **AI Integration**     | Display sentiment analysis, urgency scores, and AI drafts | `Next.js App Router`      |
-| 🔍 **Advanced Filtering** | Filter by Status, Urgency, Category with premium UI       | `Framer Motion` (planned) |
-| 📱 **Responsive Design**  | Fully optimized for Desktop, Tablet, and Mobile           | `Tailwind Responsive`     |
+| Feature                  | Description                                                | Tech                  |
+| :----------------------- | :--------------------------------------------------------- | :-------------------- |
+| 🎨 **Premium UI/UX**     | Dark theme, glassmorphism, micro-animations, & responsive  | `Tailwind CSS`        |
+| ⚡ **Real-time Updates** | Instant push updates for ticket status & AI analysis       | `WebSocket` + `SWR`   |
+| 🧠 **AI Integration**    | Display sentiment analysis, urgency scores, and AI drafts  | `Next.js App Router`  |
+| 🔔 **Notifications**     | Elegant toast notifications for background task completion | `Sonner`              |
+| 📱 **Responsive Design** | Fully optimized for Desktop, Tablet, and Mobile            | `Tailwind Responsive` |
 
 ---
 
@@ -44,23 +44,27 @@ _Real-time Monitoring - Instant Responses - Modern UX_
 ```mermaid
 graph TD
     User[Support Agent] -->|View/Action| UI[Next.js Frontend]
-    UI -->|SWR Poll| API[Next.js API Routes]
-    API -->|Proxy| BE[FastAPI Backend]
+    UI -->|UseTicket| SWR[SWR Cache]
+    UI -->|Socket| WS[WebSocket Connection]
 
-    subgraph Frontend Components
-        Dashboard -->|List| TicketList
-        TicketList -->|Item| TicketCard
-        Dashboard -->|Detail| TicketDetail
-        TicketDetail -->|Edit| TicketForm
+    subgraph Real-time Layer
+        WS <-->|Sub/Unsub| BE[FastAPI Backend]
+        BE -->|Push Events| WS
     end
+
+    WS -->|Update| SWR
+    SWR -->|Render| UI
 ```
 
 ### 💡 Engineering Decisions
 
-- **Next.js 15 App Router**: Leveraging Server Components for initial data load and Client Components for interactivity.
-- **SWR for State Management**: Used for data fetching, caching, and auto-revalidation to keep the dashboard constantly updated without complex state managers.
-- **Tailwind CSS + CSS Variables**: "PRO MAX" design system using strict CSS variables for theming, enabling easy switching and consistent design tokens.
-- **Glassmorphism**: Custom utility classes (`.glass`, `.glass-card`) implemented in `globals.css` for a unified premium look.
+- **Event-Driven Architecture**: Replaced polling with **WebSockets** for true real-time updates and reduced server load.
+- **Hybrid Data Fetching**:
+  - `useTicket`: Fetches initial state ONCE via REST API.
+  - `useTicketWebSocket`: Maintains persistent connection for live updates with **Auto-Reconnect** (Exponential Backoff) strategy.
+- **SWR for State Management**: Used as a client-side cache that is mutable by WebSocket events, ensuring UI consistency.
+- **Toast Notifications**: Used `sonner` for non-blocking, elegant feedback when long-running AI tasks complete.
+- **Clean Code**: Strict separation of UI (`components`) and Logic (`hooks`), with all magic numbers and logs removed.
 
 ---
 
@@ -89,6 +93,7 @@ Create a `.env.local` file in the root directory:
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws/tickets
 ```
 
 ### 4️⃣ Run Development Server
@@ -126,11 +131,13 @@ pnpm start
 
 | Component         | Tech                                                                                          | Version  |
 | :---------------- | :-------------------------------------------------------------------------------------------- | :------- |
-| **Framework**     | ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white)          | `15.1`   |
+| **Framework**     | ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white)          | `16.1`   |
 | **UI Library**    | ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)                | `19.0`   |
 | **Styling**       | ![Tailwind](https://img.shields.io/badge/Tailwind-38B2AC?logo=tailwind-css&logoColor=white)   | `3.4`    |
 | **Languages**     | ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) | `5.0+`   |
 | **Data Fetching** | ![SWR](https://img.shields.io/badge/SWR-000000?logo=vercel&logoColor=white)                   | `2.0+`   |
+| **Real-time**     | ![WebSocket](https://img.shields.io/badge/WebSocket-standard-green)                           | `Native` |
+| **Notifications** | ![Sonner](https://img.shields.io/badge/Sonner-Toast-orange)                                   | `1.4`    |
 | **Icons**         | ![Lucide](https://img.shields.io/badge/Lucide-F05032?logo=lucide&logoColor=white)             | `Latest` |
 
 ---

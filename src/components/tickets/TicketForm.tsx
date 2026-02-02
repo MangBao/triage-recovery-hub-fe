@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ticketAPI } from "@/lib/api";
-import { Send, AlertCircle, CheckCircle } from "lucide-react";
+import { Send } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
   onSuccess?: () => void;
@@ -11,29 +12,26 @@ interface Props {
 export default function TicketForm({ onSuccess }: Props) {
   const [complaint, setComplaint] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>();
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(undefined);
-    setSuccess(false);
 
     try {
       await ticketAPI.create({ customer_complaint: complaint });
       setComplaint("");
-      setSuccess(true);
+      toast.success("Ticket created successfully!", {
+        description: "AI is now analyzing the complaint in the background.",
+      });
       onSuccess?.();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } };
-      setError(
+      const errorMessage =
         error.response?.data?.detail ||
-          "Failed to create ticket. Please try again.",
-      );
+        "Failed to create ticket. Please try again.";
+      toast.error("Failed to create ticket", {
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -54,22 +52,6 @@ export default function TicketForm({ onSuccess }: Props) {
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Error Message */}
-        {error && (
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
-
-        {/* Success Message */}
-        {success && (
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400">
-            <CheckCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm">Ticket created! AI is now processing...</p>
-          </div>
-        )}
-
         {/* Textarea */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">

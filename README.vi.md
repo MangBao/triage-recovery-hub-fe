@@ -4,7 +4,7 @@
 
 [![Read in English](https://img.shields.io/badge/Lang-English-blue?style=for-the-badge&logo=google-translate&logoColor=white)](./README.md)
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.1-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
@@ -25,17 +25,17 @@ _Giám Sát Thời Gian Thực - Phản Hồi Tức Thì - UX Hiện Đại_
 
 ## 🌟 Giới Thiệu
 
-**Triage & Recovery Hub Frontend** là một bảng điều khiển hiện đại, cao cấp được thiết kế cho các đại lý hỗ trợ. Được xây dựng với **Next.js 15** và **React 19**, nó có tính năng giao diện người dùng UI/UX hiệu ứng kính tuyệt đẹp cho phép các đại lý theo dõi vé trong thời gian thực, xem xét các bản nháp do AI tạo ra và quản lý quy trình làm việc hỗ trợ khách hàng một cách hiệu quả.
+**Triage & Recovery Hub Frontend** là một bảng điều khiển hiện đại, cao cấp được thiết kế cho các đại lý hỗ trợ. Được xây dựng với **Next.js 16** và **React 19**, nó có tính năng giao diện người dùng UI/UX hiệu ứng kính tuyệt đẹp cho phép các đại lý theo dõi vé trong thời gian thực, xem xét các bản nháp do AI tạo ra và quản lý quy trình làm việc hỗ trợ khách hàng một cách hiệu quả.
 
 ### ✨ Tính Năng Chính
 
-| Tính Năng                      | Mô Tả                                                              | Công Nghệ                 |
-| :----------------------------- | :----------------------------------------------------------------- | :------------------------ |
-| 🎨 **UI/UX Cao Cấp**           | Giao diện tối, hiệu ứng kính, hoạt ảnh vi mô & thích ứng           | `Tailwind CSS`            |
-| ⚡ **Cập Nhật Thời Gian Thực** | Tự động cập nhật trạng thái vé & tiến trình phân tích AI           | `SWR` + `Polling Hooks`   |
-| 🧠 **Tích Hợp AI**             | Hiển thị phân tích cảm xúc, điểm khẩn cấp và bản nháp AI           | `Next.js App Router`      |
-| 🔍 **Bộ Lọc Nâng Cao**         | Lọc theo Trạng Thái, Mức Độ Khẩn Cấp, Danh Mục với UI cao cấp      | `Framer Motion` (dự kiến) |
-| 📱 **Thiết Kế Thích Ứng**      | Tối ưu hóa hoàn toàn cho Máy Tính Để Bàn, Máy Tính Bảng và Di Động | `Tailwind Responsive`     |
+| Tính Năng                      | Mô Tả                                                              | Công Nghệ             |
+| :----------------------------- | :----------------------------------------------------------------- | :-------------------- |
+| 🎨 **UI/UX Cao Cấp**           | Giao diện tối, hiệu ứng kính, hoạt ảnh vi mô & thích ứng           | `Tailwind CSS`        |
+| ⚡ **Cập Nhật Thời Gian Thực** | Cập nhật đẩy tức thì trạng thái vé & tiến trình phân tích AI       | `WebSocket` + `SWR`   |
+| 🧠 **Tích Hợp AI**             | Hiển thị phân tích cảm xúc, điểm khẩn cấp và bản nháp AI           | `Next.js App Router`  |
+| 🔔 **Thông Báo**               | Thông báo Toast tinh tế khi hoàn thành tác vụ nền                  | `Sonner`              |
+| 📱 **Thiết Kế Thích Ứng**      | Tối ưu hóa hoàn toàn cho Máy Tính Để Bàn, Máy Tính Bảng và Di Động | `Tailwind Responsive` |
 
 ---
 
@@ -44,23 +44,27 @@ _Giám Sát Thời Gian Thực - Phản Hồi Tức Thì - UX Hiện Đại_
 ```mermaid
 graph TD
     User[Đại Lý Hỗ Trợ] -->|Xem/Hành Động| UI[Frontend Next.js]
-    UI -->|SWR Poll| API[Next.js API Routes]
-    API -->|Proxy| BE[Backend FastAPI]
+    UI -->|UseTicket| SWR[SWR Cache]
+    UI -->|Socket| WS[Kết Nối WebSocket]
 
-    subgraph Frontend Components
-        Dashboard -->|Danh Sách| TicketList
-        TicketList -->|Mục| TicketCard
-        Dashboard -->|Chi Tiết| TicketDetail
-        TicketDetail -->|Chỉnh Sửa| TicketForm
+    subgraph Lớp Thời Gian Thực
+        WS <-->|Đăng Ký/Hủy| BE[Backend FastAPI]
+        BE -->|Đẩy Sự Kiện| WS
     end
+
+    WS -->|Cập Nhật| SWR
+    SWR -->|Hiển Thị| UI
 ```
 
 ### 💡 Quyết Định Kỹ Thuật
 
-- **Next.js 15 App Router**: Tận dụng Server Components để tải dữ liệu ban đầu và Client Components cho tính tương tác.
-- **SWR để Quản Lý Trạng Thái**: Được sử dụng để lấy dữ liệu, lưu vào bộ nhớ đệm và tự động xác thực lại để giữ bảng điều khiển được cập nhật liên tục mà không cần các trình quản lý trạng thái phức tạp.
-- **Tailwind CSS + CSS Variables**: Hệ thống thiết kế "PRO MAX" sử dụng các biến CSS nghiêm ngặt cho chủ đề, cho phép chuyển đổi dễ dàng và các mã thông báo thiết kế nhất quán.
-- **Glassmorphism**: Các lớp tiện ích tùy chỉnh (`.glass`, `.glass-card`) được triển khai trong `globals.css` cho một giao diện cao cấp thống nhất.
+- **Kiến Trúc Hướng Sự Kiện**: Thay thế polling bằng **WebSockets** để cập nhật thời gian thực thực sự và giảm tải máy chủ.
+- **Lấy Dữ Liệu Lai (Hybrid)**:
+  - `useTicket`: Lấy dữ liệu ban đầu MỘT LẦN qua REST API.
+  - `useTicketWebSocket`: Duy trì kết nối liên tục với cơ chế **Tự Động Kết Nối Lại** (Exponential Backoff).
+- **SWR để Quản Lý Trạng Thái**: Được sử dụng như bộ nhớ đệm phía khách hàng có thể thay đổi bởi sự kiện WebSocket, đảm bảo tính nhất quán UI.
+- **Thông Báo Toast**: Sử dụng `sonner` để phản hồi tinh tế, không chặn khi các tác vụ AI chạy nền hoàn tất.
+- **Clean Code**: Phân tách nghiêm ngặt UI (`components`) và Logic (`hooks`), loại bỏ mọi "magic numbers" và logs dư thừa.
 
 ---
 
@@ -89,6 +93,7 @@ Tạo tệp `.env.local` trong thư mục gốc:
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws/tickets
 ```
 
 ### 4️⃣ Chạy Máy Chủ Phát Triển
@@ -126,11 +131,13 @@ pnpm start
 
 | Thành Phần      | Công Nghệ                                                                                     | Phiên Bản  |
 | :-------------- | :-------------------------------------------------------------------------------------------- | :--------- |
-| **Framework**   | ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white)          | `15.1`     |
+| **Framework**   | ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white)          | `16.1`     |
 | **Thư Viện UI** | ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)                | `19.0`     |
 | **Styling**     | ![Tailwind](https://img.shields.io/badge/Tailwind-38B2AC?logo=tailwind-css&logoColor=white)   | `3.4`      |
 | **Ngôn Ngữ**    | ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) | `5.0+`     |
 | **Lấy Dữ Liệu** | ![SWR](https://img.shields.io/badge/SWR-000000?logo=vercel&logoColor=white)                   | `2.0+`     |
+| **Real-time**   | ![WebSocket](https://img.shields.io/badge/WebSocket-standard-green)                           | `Native`   |
+| **Thông Báo**   | ![Sonner](https://img.shields.io/badge/Sonner-Toast-orange)                                   | `1.4`      |
 | **Biểu Tượng**  | ![Lucide](https://img.shields.io/badge/Lucide-F05032?logo=lucide&logoColor=white)             | `Mới Nhất` |
 
 ---

@@ -13,8 +13,9 @@ export function useTicket(ticketId: number | null) {
       return response.data;
     },
     {
-      revalidateOnFocus: false,
+      revalidateOnFocus: false, // Rely on WS updates
       dedupingInterval: 2000,
+      shouldRetryOnError: false,
     },
   );
 

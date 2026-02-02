@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePolling } from "@/hooks/usePolling";
+import { useTicket } from "@/hooks/useTicket";
+import { useTicketWebSocket } from "@/hooks/useTicketWebSocket";
 import { ticketAPI } from "@/lib/api";
 import StatusBadge from "@/components/ui/StatusBadge";
 import UrgencyBadge from "@/components/ui/UrgencyBadge";
@@ -34,23 +35,34 @@ export default function TicketDetail({ ticketId }: Props) {
   const [agentId, setAgentId] = useState("agent_001");
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Use polling for processing tickets
-  const { ticket, mutate, isLoading } = usePolling(
-    ticketId,
-    true, // Will auto-stop based on status in the hook
-  );
+  // Initial fetch (no polling) - Updates handled by WebSocket
+  const { ticket, mutate, isLoading } = useTicket(ticketId);
+
+  // WebSocket Integration for Real-time Updates
+  const { lastUpdate } = useTicketWebSocket([ticketId]);
+
+  useEffect(() => {
+    if (lastUpdate && lastUpdate.id === ticketId) {
+      // Update SWR cache immediately without revalidation
+      mutate(lastUpdate, false);
+    }
+  }, [lastUpdate, ticketId, mutate]);
 
   const isProcessing =
     ticket?.status === "pending" || ticket?.status === "processing";
 
   // Initialize edited response
+  const agentEditedResponse = ticket?.agent_edited_response;
+  const aiDraftResponse = ticket?.ai_draft_response;
+
   useEffect(() => {
-    if (ticket?.agent_edited_response) {
-      setEditedResponse(ticket.agent_edited_response);
-    } else if (ticket?.ai_draft_response) {
-      setEditedResponse(ticket.ai_draft_response);
+    // Prioritize existing agent edit, then AI draft, then empty
+    const initialContent = agentEditedResponse || aiDraftResponse || "";
+    // Only update if we have content to show, or creating a fresh state
+    if (initialContent) {
+      setEditedResponse(initialContent);
     }
-  }, [ticket]);
+  }, [agentEditedResponse, aiDraftResponse]);
 
   // Save edited response
   const handleSave = async () => {
@@ -164,7 +176,8 @@ export default function TicketDetail({ ticketId }: Props) {
               </h4>
               <p className="text-lg font-semibold text-white flex items-center gap-2">
                 <span className="text-2xl">
-                  {CATEGORY_ICONS[ticket.category]}
+                  {/* Safe access with fallback */}
+                  {CATEGORY_ICONS[ticket.category] || "📁"}
                 </span>
                 {ticket.category}
               </p>
