@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # build args are needed if you want to bake in non-default URLs at build time
+      # args:
+      #   NEXT_PUBLIC_API_BASE_URL: ...
+    container_name: triage_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped

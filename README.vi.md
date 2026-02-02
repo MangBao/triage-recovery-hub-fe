@@ -127,6 +127,22 @@ pnpm start
 
 ---
 
+## 🐳 Hỗ Trợ Docker
+
+Bạn cũng có thể chạy ứng dụng bằng Docker:
+
+```bash
+# Xây dựng và Khởi chạy
+docker-compose up -d --build
+
+# Dừng lại
+docker-compose down
+```
+
+Ứng dụng sẽ hoạt động tại [http://localhost:3000](http://localhost:3000).
+
+---
+
 ## 🛠️ Chi Tiết Tech Stack
 
 | Thành Phần      | Công Nghệ                                                                                     | Phiên Bản  |

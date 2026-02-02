@@ -21,7 +21,7 @@ export function useTickets(filters: TicketFilters = {}) {
       revalidateOnFocus: false,
       revalidateOnReconnect: false, // Disable refresh on network reconnect
       dedupingInterval: 5000,
-      refreshInterval: 0, // Disable auto-refresh (Manual only)
+      keepPreviousData: true,
     },
   );
 

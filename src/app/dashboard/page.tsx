@@ -50,7 +50,7 @@ export default function DashboardPage() {
       )}
 
       {/* Ticket List */}
-      <TicketList key={refreshKey} />
+      <TicketList refreshTrigger={refreshKey} />
     </div>
   );
 }

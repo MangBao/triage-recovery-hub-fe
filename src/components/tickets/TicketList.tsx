@@ -22,31 +22,62 @@ import { useTicketFilters } from "@/hooks/useTicketFilters";
 const FILTER_SELECT_CLASS =
   "appearance-none bg-slate-800/60 hover:bg-slate-700/60 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm py-2.5 pl-4 pr-10 text-white cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500";
 
-export default function TicketList() {
+interface Props {
+  refreshTrigger?: number;
+}
+
+export default function TicketList({ refreshTrigger = 0 }: Props) {
   const perPage = 9;
   const { state, filters, hasFilters, handlers } = useTicketFilters(perPage);
   const { status, urgency, category, page } = state;
-
   const { tickets, pagination, isLoading, error, mutate } = useTickets(filters);
 
   // WebSocket Integration for List
   const ticketIds = useMemo(() => tickets.map((t) => t.id), [tickets]);
   const { lastUpdate } = useTicketWebSocket(ticketIds);
 
+  // Revalidate when parent triggers refresh (Soft Reload)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      mutate();
+    }
+  }, [refreshTrigger, mutate]);
+
   // Refresh list when any visible ticket updates
   useEffect(() => {
     if (lastUpdate) {
       // UX: Show toast for completed background tasks
-      if (lastUpdate.status === "completed") {
-        toast.info(`Ticket #${lastUpdate.id} analyzed successfully`, {
-          description: `Category: ${lastUpdate.category} • Urgency: ${lastUpdate.urgency}`,
-          icon: "🤖",
-        });
-      } else if (lastUpdate.status === "failed") {
-        toast.error(`Ticket #${lastUpdate.id} processing failed`);
+      // Only show if the status has actually changed (prevents toasts on page reload/snapshot)
+      const existingTicket = tickets.find((t) => t.id === lastUpdate.id);
+      const isStatusChanged = existingTicket?.status !== lastUpdate.status;
+
+      if (isStatusChanged) {
+        if (lastUpdate.status === "completed") {
+          toast.info(`Ticket #${lastUpdate.id} analyzed successfully`, {
+            description: `Category: ${lastUpdate.category} • Urgency: ${lastUpdate.urgency}`,
+            icon: "🤖",
+          });
+        } else if (lastUpdate.status === "failed") {
+          toast.error(`Ticket #${lastUpdate.id} processing failed`);
+        }
       }
 
-      mutate(); // Revalidate list data
+      // Optimistic Update: Directly update the cache without triggering an API call
+      mutate(
+        (currentData) => {
+          if (!currentData) return currentData;
+
+          const updatedTickets = currentData.data.map((t) =>
+            t.id === lastUpdate.id ? { ...t, ...lastUpdate } : t,
+          );
+
+          return {
+            ...currentData,
+            data: updatedTickets,
+          };
+        },
+        { revalidate: false },
+      );
     }
   }, [lastUpdate, mutate]);
 
@@ -182,8 +213,8 @@ export default function TicketList() {
         </div>
       </div>
 
-      {/* Loading State */}
-      {isLoading && <LoadingGrid />}
+      {/* Loading State - Only when strictly empty */}
+      {isLoading && tickets.length === 0 && <LoadingGrid />}
 
       {/* Empty State */}
       {!isLoading && tickets.length === 0 && (
@@ -208,8 +239,8 @@ export default function TicketList() {
         </div>
       )}
 
-      {/* Tickets Grid */}
-      {!isLoading && tickets.length > 0 && (
+      {/* Tickets Grid - Show if we have data, even if updating */}
+      {tickets.length > 0 && (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
             {tickets.map((ticket) => (

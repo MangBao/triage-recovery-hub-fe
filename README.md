@@ -127,6 +127,22 @@ pnpm start
 
 ---
 
+## 🐳 Docker Support
+
+You can also run the application using Docker:
+
+```bash
+# Build and Start
+docker-compose up -d --build
+
+# Stop
+docker-compose down
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000).
+
+---
+
 ## 🛠️ Tech Stack Details
 
 | Component         | Tech                                                                                          | Version  |
